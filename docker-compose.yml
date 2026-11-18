@@ -1,0 +1,30 @@
+services:
+  ticketr:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TICKETR_DB: postgres://ticketr:${DB_KENNWORT}@db:5432/ticketr?sslmode=disable
+    ports:
+      - "8350:8350"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ticketr
+      POSTGRES_PASSWORD: ${DB_KENNWORT}
+      POSTGRES_DB: ticketr
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketr -d ticketr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db:
