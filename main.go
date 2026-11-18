@@ -70,11 +70,21 @@ func (a *App) wege() http.Handler {
 
 func (a *App) angemeldet(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := a.sso.Wer(r); ok || (!a.sso.Geschuetzt() && a.sso.EinrichtungErlaubt(w, r)) {
+		// Anmeldung und Konten verwalten nur Admins; vor der Einrichtung, wer
+		// den Code aus dem Log hat.
+		if !a.sso.Geschuetzt() && a.sso.EinrichtungErlaubt(w, r) {
 			h(w, r)
 			return
 		}
-		http.Error(w, "Bitte anmelden", http.StatusUnauthorized)
+		if _, ok := a.sso.Wer(r); !ok {
+			http.Error(w, "Bitte anmelden", http.StatusUnauthorized)
+			return
+		}
+		if k, err := a.ich(r); err != nil || k.Rolle != "admin" {
+			http.Error(w, "Nur für Admins", http.StatusForbidden)
+			return
+		}
+		h(w, r)
 	}
 }
 
