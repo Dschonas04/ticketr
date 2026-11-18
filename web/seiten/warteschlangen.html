@@ -1,0 +1,36 @@
+{{define "inhalt"}}
+{{$t := .Token}}
+<div class="leiste"><h1>Warteschlangen</h1><a class="knopf" href="/sso/konten">Konten</a></div>
+<table style="max-width:760px">
+  <tr><th>Name</th><th>Reihenfolge</th><th>Offen</th><th></th></tr>
+  {{range .D.Schlangen}}
+  <tr>
+    <td colspan="2">
+      <form method="post" action="/warteschlangen" class="leiste" style="margin:0">
+        <input type="hidden" name="token" value="{{$t}}"><input type="hidden" name="id" value="{{.ID}}">
+        <input type="text" name="name" value="{{.Name}}" style="max-width:240px" aria-label="Name">
+        <input type="number" name="reihe" value="{{.Reihe}}" style="width:80px" aria-label="Reihenfolge">
+        <button>Speichern</button>
+      </form>
+    </td>
+    <td><a href="/?warteschlange={{.ID}}">{{.Offen}}</a></td>
+    <td style="text-align:right">
+      <form method="post" action="/warteschlangen/{{.ID}}/loeschen" class="inline" data-frage="Warteschlange löschen? Die Tickets bleiben.">
+        <input type="hidden" name="token" value="{{$t}}"><button class="gefahr klein">Löschen</button>
+      </form>
+    </td>
+  </tr>
+  {{end}}
+</table>
+<form method="post" action="/warteschlangen" class="karte leiste" style="max-width:760px;margin-top:14px">
+  <input type="hidden" name="token" value="{{$t}}">
+  <input type="text" name="name" placeholder="Neue Warteschlange" style="max-width:260px">
+  <button class="primaer">Anlegen</button>
+</form>
+<h2>Bearbeitende</h2>
+<table style="max-width:760px"><tr><th>Name</th><th>E-Mail</th><th>Rolle</th></tr>
+{{range .D.Konten}}<tr><td>{{.Name}}</td><td class="muted">{{.Email}}</td><td>{{.Rolle}}</td></tr>{{end}}
+</table>
+<p class="muted klein">Wer sich anmeldet, erscheint hier und kann Tickets übernehmen.</p>
+{{end}}
+{{define "skripte"}}<script src="/statisch/verwalten.js" defer></script>{{end}}

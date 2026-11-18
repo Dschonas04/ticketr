@@ -1,39 +1,42 @@
-// Ticketr: Ticketsystem für Anfragen, Störungen und Aufgaben, mit E-Mail-Eingang und Kundenportal.
-//
-// Grundgerüst: der Server startet, liefert die Startseite aus und antwortet auf
-// /healthz und /api/version. Was als Nächstes kommt, steht in der README.
+// Ticketr: Ticketsystem für Anfragen, Störungen und Aufgaben. Tickets mit
+// Status, Priorität, Warteschlange und Zuständigkeit, Verlauf aus Antworten und
+// internen Notizen, Fristen nach Priorität, Benachrichtigung per Mail.
 package main
 
 import (
 	"context"
-	"embed"
-	"encoding/json"
 	"errors"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//go:embed web
-var webDateien embed.FS
-
-// version wird beim Bau gesetzt: -ldflags "-X main.version=v0.1.0".
-var version = "entwicklung"
+type App struct {
+	db   *pgxpool.Pool
+	sso  *SSO
+	v    Vorlagen
+	mail *Mailer
+}
 
 func main() {
-	adresse := ":" + umgebung("TICKETR_PORT", "8350")
-	srv := &http.Server{
-		Addr:              adresse,
-		Handler:           neuerMux(),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	a := &App{
+		db:   datenbank(ctx, umgebung("TICKETR_DB", "postgres://ticketr:ticketr@localhost:5432/ticketr?sslmode=disable")),
+		sso:  NeuesSSO("Ticketr", umgebung("TICKETR_SSO_DATEI", "./einstellungen/sso.json"), "TICKETR_SSO_AUS"),
+		v:    ladeVorlagen(),
+		mail: neuerMailer(),
+	}
+	a.sso.Frei = []string{"/statisch/", "/healthz"}
+
+	adresse := ":" + umgebung("TICKETR_PORT", "8350")
+	srv := &http.Server{Addr: adresse, Handler: a.wege(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		log.Printf("Ticketr %s lauscht auf %s", version, adresse)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -41,46 +44,41 @@ func main() {
 		}
 	}()
 	<-ctx.Done()
-
 	ende, abbruch := context.WithTimeout(context.Background(), 10*time.Second)
 	defer abbruch()
-	if err := srv.Shutdown(ende); err != nil {
-		log.Printf("Beenden: %v", err)
+	srv.Shutdown(ende)
+}
+
+func (a *App) wege() http.Handler {
+	m := http.NewServeMux()
+	m.HandleFunc("GET /healthz", gesund)
+	m.Handle("GET /statisch/", statisch())
+	a.sso.Wege(m, a.angemeldet)
+
+	m.HandleFunc("GET /{$}", a.liste)
+	m.HandleFunc("GET /neu", a.neuFormular)
+	m.HandleFunc("POST /neu", a.neuAnlegen)
+	m.HandleFunc("GET /t/{id}", a.ticketZeigen)
+	m.HandleFunc("POST /t/{id}/beitrag", a.beitragSchreiben)
+	m.HandleFunc("POST /t/{id}/eigenschaften", a.eigenschaftenSetzen)
+	m.HandleFunc("GET /warteschlangen", a.warteschlangen)
+	m.HandleFunc("POST /warteschlangen", a.warteschlangeSpeichern)
+	m.HandleFunc("POST /warteschlangen/{id}/loeschen", a.warteschlangeLoeschen)
+	m.HandleFunc("GET /api/tickets", a.apiListe)
+	return sicherheitskopf(nurAngemeldet(a.sso, m))
+}
+
+func (a *App) angemeldet(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := a.sso.Wer(r); ok || (!a.sso.Geschuetzt() && a.sso.EinrichtungErlaubt(w, r)) {
+			h(w, r)
+			return
+		}
+		http.Error(w, "Bitte anmelden", http.StatusUnauthorized)
 	}
 }
 
-func neuerMux() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("ok\n"))
-	})
-	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"name": "ticketr", "version": version})
-	})
-	web, err := fs.Sub(webDateien, "web")
-	if err != nil {
-		log.Fatal(err)
-	}
-	mux.Handle("GET /", http.FileServerFS(web))
-	return sicherheitskopf(mux)
-}
-
-// sicherheitskopf setzt die Kopfzeilen, die jede Antwort tragen soll.
-func sicherheitskopf(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		k := w.Header()
-		k.Set("X-Content-Type-Options", "nosniff")
-		k.Set("Referrer-Policy", "no-referrer")
-		k.Set("X-Frame-Options", "DENY")
-		k.Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'")
-		next.ServeHTTP(w, r)
-	})
-}
-
-func umgebung(name, vorgabe string) string {
-	if v := os.Getenv(name); v != "" {
-		return v
-	}
-	return vorgabe
+func (a *App) daten(r *http.Request, titel, nav string, d any) Daten {
+	n, _ := a.sso.Wer(r)
+	return Daten{App: "Ticketr", Titel: titel, Nav: nav, Nutzer: n, D: d}
 }

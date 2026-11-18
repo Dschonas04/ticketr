@@ -7,6 +7,8 @@ services:
       TICKETR_DB: postgres://ticketr:${DB_KENNWORT}@db:5432/ticketr?sslmode=disable
     ports:
       - "8350:8350"
+    volumes:
+      - einstellungen:/einstellungen
     depends_on:
       db:
         condition: service_healthy
@@ -28,3 +30,4 @@ services:
 
 volumes:
   db:
+  einstellungen:

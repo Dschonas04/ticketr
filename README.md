@@ -2,8 +2,12 @@
 
 Ticketsystem für Anfragen, Störungen und Aufgaben, mit E-Mail-Eingang und Kundenportal.
 
-**Stand: Grundgerüst.** Der Server startet und zeigt eine Startseite, die
-Funktionen unten sind geplant.
+**Stand: 0.1.** Tickets mit Status, Priorität, Warteschlange, Zuständigkeit
+und Frist (nach Priorität: dringend 4 h, hoch 1 Tag, normal 3 Tage, niedrig
+7 Tage), Verlauf aus Antworten, internen Notizen und Änderungen, Filter und
+Volltextsuche, Antwort per Mail an die meldende Person (mit SMTP), JSON unter
+`/api/tickets`, Anmeldung über Keycloak. E-Mail-Eingang und Kundenportal
+kommen noch.
 
 ## Geplant
 

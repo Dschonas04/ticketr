@@ -1,0 +1,63 @@
+{{define "inhalt"}}
+{{$t := .D.T}}{{$d := .D}}
+<div class="leiste">
+  <h1><span class="muted">#{{$t.ID}}</span> {{$t.Betreff}}</h1>
+  <span class="pille {{$t.StatusKlasse}}">{{$t.StatusName}}</span>
+  <span class="pille {{$t.PrioKlasse}}">{{$t.PrioritaetName}}</span>
+  {{if $t.Ueberfaellig}}<span class="pille schlecht">überfällig</span>{{end}}
+</div>
+<div class="zwei">
+  <div>
+    <div class="verlauf">
+      {{range $d.Verlauf}}
+      {{if eq .Art "ereignis"}}
+      <div class="muted klein">{{.Verfasser}}: {{.Text}} · {{datum .Erstellt}}</div>
+      {{else}}
+      <div class="beitrag{{if eq .Art "notiz"}} intern{{end}}">
+        <div class="meta"><strong>{{.Verfasser}}</strong> · {{datum .Erstellt}}{{if eq .Art "notiz"}} · interne Notiz{{end}}</div>
+        <div>{{mehrzeilig .Text}}</div>
+      </div>
+      {{end}}
+      {{else}}<div class="muted">Noch keine Beiträge.</div>{{end}}
+    </div>
+    <form method="post" action="/t/{{$t.ID}}/beitrag" class="karte" style="margin-top:16px">
+      <input type="hidden" name="token" value="{{.Token}}">
+      <label for="text">Antwort oder Notiz</label>
+      <textarea id="text" name="text" rows="6" required></textarea>
+      <div class="leiste" style="margin-top:10px">
+        <label style="margin:0"><input type="checkbox" name="intern" value="ja"> Interne Notiz</label>
+        {{if and $d.Mail $t.MelderEmail}}<label style="margin:0"><input type="checkbox" name="mail" value="ja" checked> an {{$t.MelderEmail}} schicken</label>{{end}}
+        <select name="status" style="width:auto" aria-label="Status danach">
+          <option value="">Status lassen</option>
+          {{range $d.Stati}}<option value="{{.Wert}}">danach: {{.Name}}</option>{{end}}
+        </select>
+        <button class="primaer">Speichern</button>
+      </div>
+    </form>
+  </div>
+  <form method="post" action="/t/{{$t.ID}}/eigenschaften" class="karte" style="align-self:start">
+    <input type="hidden" name="token" value="{{.Token}}">
+    <label for="betreff">Betreff</label><input type="text" id="betreff" name="betreff" value="{{$t.Betreff}}">
+    <label for="status">Status</label>
+    <select id="status" name="status">{{range $d.Stati}}<option value="{{.Wert}}"{{if eq .Wert $t.Status}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <label for="prioritaet">Priorität</label>
+    <select id="prioritaet" name="prioritaet">{{range $d.Prioritaeten}}<option value="{{.Wert}}"{{if eq .Wert $t.Prioritaet}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <label for="warteschlange">Warteschlange</label>
+    <select id="warteschlange" name="warteschlange"><option value="">keine</option>{{range $d.Schlangen}}<option value="{{.ID}}"{{if eq .ID $t.WarteschlangeID}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <label for="zustaendig">Zuständig</label>
+    <select id="zustaendig" name="zustaendig"><option value="">niemand</option>{{range $d.Konten}}<option value="{{.ID}}"{{if eq .ID $t.ZustaendigID}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <label for="faellig">Fällig</label>
+    <input type="datetime-local" id="faellig" name="faellig" value="{{feld $t.Faellig}}">
+    <div class="leiste" style="margin-top:14px">
+      <button class="primaer">Speichern</button>
+      {{if ne $t.ZustaendigID $d.Ich.ID}}<button name="uebernehmen" value="ja">Übernehmen</button>{{end}}
+    </div>
+    <dl class="eigenschaften" style="margin-top:14px">
+      <dt>Gemeldet</dt><dd>{{if $t.MelderName}}{{$t.MelderName}}{{end}}{{if $t.MelderEmail}}<div class="muted klein">{{$t.MelderEmail}}</div>{{end}}</dd>
+      <dt>Erstellt</dt><dd>{{datum $t.Erstellt}}</dd>
+      <dt>Erste Antwort</dt><dd>{{if $t.ErsteAntwort}}{{datum $t.ErsteAntwort}}{{else}}<span class="muted">noch keine</span>{{end}}</dd>
+      <dt>Geändert</dt><dd>{{datum $t.Geaendert}}</dd>
+    </dl>
+  </form>
+</div>
+{{end}}

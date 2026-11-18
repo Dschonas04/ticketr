@@ -1,0 +1,23 @@
+{{define "inhalt"}}
+<h1>Neues Ticket</h1>
+<form method="post" action="/neu" class="karte" style="max-width:760px">
+  <input type="hidden" name="token" value="{{.Token}}">
+  <label for="betreff">Betreff</label>
+  <input type="text" id="betreff" name="betreff" required autofocus>
+  <label for="text">Beschreibung</label>
+  <textarea id="text" name="text" rows="8"></textarea>
+  <div class="feld-reihe">
+    <div><label for="warteschlange">Warteschlange</label>
+      <select id="warteschlange" name="warteschlange">{{range .D.Schlangen}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+    <div><label for="prioritaet">Priorität</label>
+      <select id="prioritaet" name="prioritaet">{{range .D.Prioritaeten}}<option value="{{.Wert}}"{{if eq .Wert "normal"}} selected{{end}}>{{.Name}}</option>{{end}}</select></div>
+    <div><label for="zustaendig">Zuständig</label>
+      <select id="zustaendig" name="zustaendig"><option value="">niemand</option>{{range .D.Konten}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+  </div>
+  <div class="feld-reihe">
+    <div><label for="melder_name">Gemeldet von (leer: ich)</label><input type="text" id="melder_name" name="melder_name" placeholder="{{.D.Ich.Name}}"></div>
+    <div><label for="melder_email">E-Mail der meldenden Person</label><input type="email" id="melder_email" name="melder_email" placeholder="{{.D.Ich.Email}}"></div>
+  </div>
+  <div class="leiste" style="margin-top:16px"><button class="primaer">Anlegen</button><a class="knopf" href="/">Abbrechen</a></div>
+</form>
+{{end}}
