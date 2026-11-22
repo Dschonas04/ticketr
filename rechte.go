@@ -74,3 +74,10 @@ func (a *App) rolleSetzen(w http.ResponseWriter, r *http.Request) {
 	}
 	zurueck(w, r, "/warteschlangen", "Rolle gespeichert")
 }
+
+// adminEntziehen läuft vor dem Löschen eines Kontos und vor dem Anlegen eines
+// neuen mit demselben Namen. Der Verlauf behält die Person, der Name erbt nichts.
+func (a *App) adminEntziehen(ctx context.Context, kennung string) error {
+	_, err := a.db.Exec(ctx, `UPDATE konten SET rolle = 'agent', kennung = 'geloescht:' || id::text WHERE kennung = $1`, kennung)
+	return err
+}

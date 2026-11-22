@@ -168,3 +168,5 @@ dl.eigenschaften dd { margin: 0; overflow-wrap: anywhere; }
 .antwort-fuss select { width: auto; }
 .antwort-fuss .primaer { margin-left: auto; }
 .ereignis { padding-left: 14px; border-left: 2px solid var(--rand); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.bericht .zahl strong { font-size: 19px; }
+@media (min-width: 701px) { .filter input[type=search] { flex: 1; min-width: 230px; } }

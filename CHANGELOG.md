@@ -2,6 +2,7 @@
 
 ## Unveröffentlicht
 
+- Sicherheit: Mit einem Konto enden seine Rechte; geprüft wird erst, wenn die Anfrage vollständig da ist.
 - Anhänge an Tickets und Antworten (immer als Download), Antwortvorlagen, Berichte mit Antwort- und Lösungszeiten.
 - Liste mit Kennzahlen und Filter für Überfälliges.
 - Sicherheit: Admin wird man nur mit dem Einrichtungscode oder über `TICKETR_ADMIN`, nicht durch die erste Anmeldung. Kennungen von eigenen Konten und SSO sind getrennt.
