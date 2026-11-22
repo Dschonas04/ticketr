@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -106,8 +107,8 @@ type Beitrag struct {
 	Erstellt  time.Time
 }
 
-// ich legt das Konto der angemeldeten Person an oder frischt es auf. Wer als
-// Erstes kommt, wird Admin.
+// ich legt das Konto der angemeldeten Person an oder frischt es auf. Neue
+// Personen sind Agenten, außer der Betreiber gibt sie als Admin vor.
 func (a *App) ich(r *http.Request) (Konto, error) {
 	n, _ := a.sso.Wer(r)
 	kennung := n.Kennung
@@ -124,9 +125,10 @@ func (a *App) ich(r *http.Request) (Konto, error) {
 	var k Konto
 	err := a.db.QueryRow(r.Context(), `
 		INSERT INTO konten (kennung, name, email, rolle)
-		VALUES ($1, $2, $3, CASE WHEN EXISTS (SELECT 1 FROM konten) THEN 'agent' ELSE 'admin' END)
-		ON CONFLICT (kennung) DO UPDATE SET name=$2, email=$3, zuletzt=now()
-		RETURNING id::text, name, email, rolle`, kennung, anzeige, n.Email).Scan(&k.ID, &k.Name, &k.Email, &k.Rolle)
+		VALUES ($1, $2, $3, CASE WHEN $4 THEN 'admin' ELSE 'agent' END)
+		ON CONFLICT (kennung) DO UPDATE SET name=$2, email=$3, zuletzt=now(),
+			rolle = CASE WHEN $4 THEN 'admin' ELSE konten.rolle END
+		RETURNING id::text, name, email, rolle`, kennung, anzeige, n.Email, slices.Contains(a.admins, kennung)).Scan(&k.ID, &k.Name, &k.Email, &k.Rolle)
 	return k, err
 }
 

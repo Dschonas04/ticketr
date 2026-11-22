@@ -17,10 +17,11 @@ import (
 )
 
 type App struct {
-	db   *pgxpool.Pool
-	sso  *SSO
-	v    Vorlagen
-	mail *Mailer
+	admins []string // Vorgabe des Betreibers
+	db     *pgxpool.Pool
+	sso    *SSO
+	v      Vorlagen
+	mail   *Mailer
 }
 
 func main() {
@@ -33,6 +34,8 @@ func main() {
 		v:    ladeVorlagen(),
 		mail: neuerMailer(),
 	}
+	a.admins = adminListe(umgebung("TICKETR_ADMIN", ""))
+	a.sso.ErstesKonto = a.ersterAdmin
 	a.sso.Frei = []string{"/statisch/", "/healthz"}
 
 	adresse := ":" + umgebung("TICKETR_PORT", "8350")

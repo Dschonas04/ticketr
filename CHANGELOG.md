@@ -2,6 +2,7 @@
 
 ## Unveröffentlicht
 
+- Sicherheit: Admin wird man nur mit dem Einrichtungscode oder über `TICKETR_ADMIN`, nicht durch die erste Anmeldung. Kennungen von eigenen Konten und SSO sind getrennt.
 - Oberfläche überarbeitet: Kopfzeile, Tabellen und Felder am Handy, Anmeldeseite in den Farben der App.
 - Logo auf der Anmeldeseite wird wieder ausgeliefert, der Hinweis zur Ersteinrichtung stimmt.
 - Sicherheit: Warteschlangen und Rollen ändern nur noch Admins.

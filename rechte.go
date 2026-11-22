@@ -1,6 +1,29 @@
 package main
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+	"strings"
+)
+
+// adminListe liest die Vorgabe des Betreibers: Kennungen mit Komma getrennt,
+// konto:<name> oder oidc:<Aussteller>|<sub>.
+func adminListe(s string) []string {
+	var l []string
+	for _, e := range strings.Split(s, ",") {
+		if e = strings.TrimSpace(e); e != "" {
+			l = append(l, e)
+		}
+	}
+	return l
+}
+
+// ersterAdmin läuft, wenn mit dem Einrichtungscode das erste Konto entsteht.
+func (a *App) ersterAdmin(ctx context.Context, kennung, name string) error {
+	_, err := a.db.Exec(ctx, `INSERT INTO konten (kennung, name, rolle) VALUES ($1, $2, 'admin')
+		ON CONFLICT (kennung) DO UPDATE SET rolle = 'admin'`, kennung, name)
+	return err
+}
 
 // nurAdmin: Warteschlangen und Rollen ändern nur Admins. Das Menü blendet die
 // Verwaltung für Agenten aus, entscheidend ist aber diese Prüfung.
