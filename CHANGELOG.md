@@ -2,6 +2,10 @@
 
 ## Unveröffentlicht
 
+- Oberfläche überarbeitet: Kopfzeile, Tabellen und Felder am Handy, Anmeldeseite in den Farben der App.
+- Logo auf der Anmeldeseite wird wieder ausgeliefert, der Hinweis zur Ersteinrichtung stimmt.
+- Sicherheit: Warteschlangen und Rollen ändern nur noch Admins.
+- `GET /api/tickets` beachtet den Filter `prioritaet`.
 - Tickets anlegen, bearbeiten, übernehmen; Status, Priorität, Warteschlange, Zuständigkeit, Frist nach Priorität, überfällige Tickets markiert.
 - Verlauf je Ticket: Antworten, interne Notizen, Änderungen als Ereignisse; erste Antwort wird festgehalten.
 - Liste mit Filtern (Status, Warteschlange, Zuständig, Priorität) und Suche über Betreff, Meldende und Text, `#Nummer` springt.

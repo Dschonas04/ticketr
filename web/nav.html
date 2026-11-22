@@ -1,1 +1,1 @@
-{{define "nav"}}<a href="/"{{if gleich .Nav "liste"}} class="aktiv"{{end}}>Tickets</a><a href="/neu"{{if gleich .Nav "neu"}} class="aktiv"{{end}}>Neues Ticket</a><a href="/warteschlangen"{{if gleich .Nav "warteschlangen"}} class="aktiv"{{end}}>Warteschlangen</a>{{end}}
+{{define "nav"}}<a href="/"{{if gleich .Nav "liste"}} class="aktiv"{{end}}>Tickets</a><a href="/neu"{{if gleich .Nav "neu"}} class="aktiv"{{end}}>Neues Ticket</a>{{if .Admin}}<a href="/warteschlangen"{{if gleich .Nav "warteschlangen"}} class="aktiv"{{end}}>Verwaltung</a>{{end}}{{end}}

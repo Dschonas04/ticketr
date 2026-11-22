@@ -519,6 +519,7 @@ func datumFeld(t *time.Time) string {
 func (a *App) warteschlangen(w http.ResponseWriter, r *http.Request) {
 	a.v.zeigen(w, r, "warteschlangen", a.daten(r, "Warteschlangen", "warteschlangen", map[string]any{
 		"Schlangen": a.schlangen(r.Context()), "Konten": a.konten(r.Context()),
+		"Rollen": []Wahl{{"agent", "Agent"}, {"admin", "Admin"}},
 	}))
 }
 
@@ -549,7 +550,10 @@ func (a *App) warteschlangeLoeschen(w http.ResponseWriter, r *http.Request) {
 	if !pruefeFormular(w, r) {
 		return
 	}
-	a.db.Exec(r.Context(), `DELETE FROM warteschlangen WHERE id::text=$1`, r.PathValue("id"))
+	if _, err := a.db.Exec(r.Context(), `DELETE FROM warteschlangen WHERE id::text=$1`, r.PathValue("id")); err != nil {
+		zurueck(w, r, "/warteschlangen", "Fehler: "+err.Error())
+		return
+	}
 	zurueck(w, r, "/warteschlangen", "Gelöscht, die Tickets darin haben jetzt keine Warteschlange")
 }
 
@@ -558,7 +562,7 @@ func (a *App) apiListe(w http.ResponseWriter, r *http.Request) {
 	ich, _ := a.ich(r)
 	q := r.URL.Query()
 	l, err := a.suchen(r.Context(), Filter{Status: q.Get("status"), Warteschlange: q.Get("warteschlange"),
-		Zustaendig: q.Get("zustaendig"), Suche: q.Get("q")}, ich.ID)
+		Zustaendig: q.Get("zustaendig"), Suche: q.Get("q"), Prioritaet: q.Get("prioritaet")}, ich.ID)
 	if err != nil {
 		alsJSON(w, 500, map[string]string{"fehler": err.Error()})
 		return

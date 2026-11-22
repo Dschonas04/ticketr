@@ -63,9 +63,10 @@ func (a *App) wege() http.Handler {
 	m.HandleFunc("GET /t/{id}", a.ticketZeigen)
 	m.HandleFunc("POST /t/{id}/beitrag", a.beitragSchreiben)
 	m.HandleFunc("POST /t/{id}/eigenschaften", a.eigenschaftenSetzen)
-	m.HandleFunc("GET /warteschlangen", a.warteschlangen)
-	m.HandleFunc("POST /warteschlangen", a.warteschlangeSpeichern)
-	m.HandleFunc("POST /warteschlangen/{id}/loeschen", a.warteschlangeLoeschen)
+	m.HandleFunc("GET /warteschlangen", a.nurAdmin(a.warteschlangen))
+	m.HandleFunc("POST /warteschlangen", a.nurAdmin(a.warteschlangeSpeichern))
+	m.HandleFunc("POST /warteschlangen/{id}/loeschen", a.nurAdmin(a.warteschlangeLoeschen))
+	m.HandleFunc("POST /konten/{id}/rolle", a.nurAdmin(a.rolleSetzen))
 	m.HandleFunc("GET /api/tickets", a.apiListe)
 	return sicherheitskopf(nurAngemeldet(a.sso, m))
 }
@@ -92,5 +93,5 @@ func (a *App) angemeldet(h http.HandlerFunc) http.HandlerFunc {
 
 func (a *App) daten(r *http.Request, titel, nav string, d any) Daten {
 	n, _ := a.sso.Wer(r)
-	return Daten{App: "Ticketr", Titel: titel, Nav: nav, Nutzer: n, D: d}
+	return Daten{App: "Ticketr", Titel: titel, Nav: nav, Nutzer: n, Admin: a.istAdmin(r), D: d}
 }
