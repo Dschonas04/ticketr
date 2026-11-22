@@ -2,6 +2,10 @@
 
 ## Unveröffentlicht
 
+- Kundenportal, E-Mail-Eingang per IMAP, Fristen für die erste Antwort mit Erinnerung.
+- Warteschlangen mit Stichworten, gespeicherte Ansichten, Webhook mit Unterschrift.
+- SMTP mit Zeitgrenze.
+- Sicherheit: Änderungen an Konten, Rollen und Anmeldung laufen nacheinander, Prüfung und Schreiben unter einer Sperre.
 - Sicherheit: Mit einem Konto enden seine Rechte; geprüft wird erst, wenn die Anfrage vollständig da ist.
 - Anhänge an Tickets und Antworten (immer als Download), Antwortvorlagen, Berichte mit Antwort- und Lösungszeiten.
 - Liste mit Kennzahlen und Filter für Überfälliges.

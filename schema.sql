@@ -63,3 +63,25 @@ CREATE TABLE IF NOT EXISTS vorlagen (
 	name  text NOT NULL UNIQUE,
 	text  text NOT NULL
 );
+
+ALTER TABLE beitraege ADD COLUMN IF NOT EXISTS von_name text NOT NULL DEFAULT '';
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS portal_hash text UNIQUE;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS erinnert_antwort timestamptz;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS erinnert_frist timestamptz;
+ALTER TABLE warteschlangen ADD COLUMN IF NOT EXISTS stichworte text NOT NULL DEFAULT '';
+
+-- Schon übernommene Mails, damit keine zweimal zum Ticket wird.
+CREATE TABLE IF NOT EXISTS mails (
+	id       text PRIMARY KEY,
+	ticket   bigint REFERENCES tickets(id) ON DELETE SET NULL,
+	erhalten timestamptz NOT NULL DEFAULT now()
+);
+
+-- Gespeicherte Filter je Person.
+CREATE TABLE IF NOT EXISTS ansichten (
+	id     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	konto  uuid NOT NULL REFERENCES konten(id) ON DELETE CASCADE,
+	name   text NOT NULL,
+	abfrage text NOT NULL,
+	UNIQUE (konto, name)
+);

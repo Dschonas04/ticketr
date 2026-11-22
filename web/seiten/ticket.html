@@ -60,6 +60,7 @@
     <dl class="eigenschaften" style="margin-top:14px">
       <dt>Gemeldet</dt><dd>{{if $t.MelderName}}{{$t.MelderName}}{{end}}{{if $t.MelderEmail}}<div class="muted klein">{{$t.MelderEmail}}</div>{{end}}</dd>
       <dt>Erstellt</dt><dd>{{datum $t.Erstellt}}</dd>
+      {{if not $t.ErsteAntwort}}<dt>Antwort bis</dt><dd>{{if $t.AntwortUeberfaellig}}<span class="pille schlecht">{{datum $t.AntwortBis}}</span>{{else}}{{datum $t.AntwortBis}}{{end}}</dd>{{end}}
       <dt>Erste Antwort</dt><dd>{{if $t.ErsteAntwort}}{{datum $t.ErsteAntwort}}{{else}}<span class="muted">noch keine</span>{{end}}</dd>
       <dt>Geändert</dt><dd>{{datum $t.Geaendert}}</dd>
     </dl>

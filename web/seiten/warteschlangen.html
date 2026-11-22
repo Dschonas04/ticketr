@@ -9,7 +9,8 @@
     <td colspan="2">
       <form method="post" action="/warteschlangen" class="leiste" style="margin:0">
         <input type="hidden" name="token" value="{{$t}}"><input type="hidden" name="id" value="{{.ID}}">
-        <input type="text" name="name" value="{{.Name}}" style="max-width:240px" aria-label="Name">
+        <input type="text" name="name" value="{{.Name}}" style="max-width:200px" aria-label="Name">
+        <input type="text" name="stichworte" value="{{.Stichworte}}" style="max-width:240px" placeholder="Stichworte, mit Komma" aria-label="Stichworte">
         <input type="number" name="reihe" value="{{.Reihe}}" style="width:80px" aria-label="Reihenfolge">
         <button>Speichern</button>
       </form>
@@ -28,6 +29,7 @@
   <input type="text" name="name" placeholder="Neue Warteschlange" style="max-width:260px">
   <button class="primaer">Anlegen</button>
 </form>
+<p class="muted klein">Stichworte sortieren neue Tickets automatisch ein, es zählt die erste passende Warteschlange.</p>
 <h2>Bearbeitende</h2>
 <table style="max-width:760px"><tr><th>Name</th><th>E-Mail</th><th>Rolle</th></tr>
 {{$rollen := .D.Rollen}}{{range .D.Konten}}{{$rolle := .Rolle}}<tr><td>{{.Name}}</td><td class="muted">{{.Email}}</td><td>

@@ -150,13 +150,14 @@ func (a *App) konten(ctx context.Context) []Konto {
 }
 
 type Schlange struct {
-	ID, Name string
-	Reihe    int
-	Offen    int
+	ID, Name   string
+	Reihe      int
+	Offen      int
+	Stichworte string
 }
 
 func (a *App) schlangen(ctx context.Context) []Schlange {
-	rows, err := a.db.Query(ctx, `SELECT w.id::text, w.name, w.reihe,
+	rows, err := a.db.Query(ctx, `SELECT w.id::text, w.name, w.reihe, w.stichworte,
 		(SELECT count(*) FROM tickets t WHERE t.warteschlange = w.id AND t.status NOT IN ('geloest','geschlossen'))
 		FROM warteschlangen w ORDER BY w.reihe, w.name`)
 	if err != nil {
@@ -166,7 +167,7 @@ func (a *App) schlangen(ctx context.Context) []Schlange {
 	var l []Schlange
 	for rows.Next() {
 		var s Schlange
-		if rows.Scan(&s.ID, &s.Name, &s.Reihe, &s.Offen) == nil {
+		if rows.Scan(&s.ID, &s.Name, &s.Reihe, &s.Stichworte, &s.Offen) == nil {
 			l = append(l, s)
 		}
 	}
@@ -277,6 +278,11 @@ func (a *App) liste(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	meine, err := a.ansichten(r.Context(), ich.ID)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	var zahlen struct{ Offen, Mir, Ueber, Neu int }
 	a.db.QueryRow(r.Context(), `SELECT
 		count(*) FILTER (WHERE status NOT IN ('geloest','geschlossen')),
@@ -286,7 +292,7 @@ func (a *App) liste(w http.ResponseWriter, r *http.Request) {
 		FROM tickets`, ich.ID).Scan(&zahlen.Offen, &zahlen.Mir, &zahlen.Ueber, &zahlen.Neu)
 	a.v.zeigen(w, r, "liste", a.daten(r, "Tickets", "liste", map[string]any{
 		"Tickets": l, "F": f, "Stati": Stati, "Prioritaeten": Prioritaeten,
-		"Schlangen": a.schlangen(r.Context()), "Konten": a.konten(r.Context()), "Zahlen": zahlen,
+		"Schlangen": a.schlangen(r.Context()), "Konten": a.konten(r.Context()), "Zahlen": zahlen, "Ansichten": meine,
 	}))
 }
 
@@ -332,12 +338,19 @@ func (a *App) neuAnlegen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
+	schlange := r.FormValue("warteschlange")
+	if schlange == "auto" {
+		if schlange, err = passendeSchlange(r.Context(), tx, betreff+" "+text); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
 	var id int64
 	err = tx.QueryRow(r.Context(), `INSERT INTO tickets (betreff, prioritaet, warteschlange, melder_name, melder_email,
 		erstellt_von, zustaendig, faellig, status)
 		VALUES ($1, $2, NULLIF($3, '')::uuid, $4, $5, $6::uuid, NULLIF($7, '')::uuid, $8,
 		        CASE WHEN $7 = '' THEN 'neu' ELSE 'offen' END) RETURNING id`,
-		betreff, prio, r.FormValue("warteschlange"), melderName, melderEmail, ich.ID, r.FormValue("zustaendig"),
+		betreff, prio, schlange, melderName, melderEmail, ich.ID, r.FormValue("zustaendig"),
 		frist(prio, time.Now())).Scan(&id)
 	if err != nil {
 		zurueck(w, r, "/neu", "Fehler: "+err.Error())
@@ -359,6 +372,7 @@ func (a *App) neuAnlegen(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	a.melden("ticket.neu", id, betreff)
 	zurueck(w, r, fmt.Sprintf("/t/%d", id), "Ticket angelegt")
 }
 
@@ -373,7 +387,7 @@ func (a *App) ticketZeigen(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	rows, err := a.db.Query(r.Context(), `SELECT b.id, COALESCE(k.name, 'Unbekannt'), b.art, b.text, b.erstellt
+	rows, err := a.db.Query(r.Context(), `SELECT b.id, COALESCE(k.name, NULLIF(b.von_name, ''), 'Unbekannt'), b.art, b.text, b.erstellt
 		FROM beitraege b LEFT JOIN konten k ON k.id = b.verfasser WHERE b.ticket = $1 ORDER BY b.erstellt, b.id`, t.ID)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -479,6 +493,12 @@ func (a *App) beitragSchreiben(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hinweis := "Gespeichert"
+	if art == "antwort" {
+		a.melden("ticket.antwort", t.ID, t.Betreff)
+	}
+	if v := r.FormValue("status"); gueltig(Stati, v) && v != t.Status {
+		a.melden("ticket.status", t.ID, t.Betreff)
+	}
 	if art == "antwort" && r.FormValue("mail") == "ja" && a.mail != nil && t.MelderEmail != "" && t.MelderEmail != ich.Email {
 		if err := a.mail.senden(t.MelderEmail, fmt.Sprintf("[#%d] %s", t.ID, t.Betreff), text+"\n\n"+ich.Name); err != nil {
 			hinweis = "Gespeichert, aber die Mail ging nicht raus: " + err.Error()
@@ -569,6 +589,9 @@ func (a *App) eigenschaftenSetzen(w http.ResponseWriter, r *http.Request) {
 		a.db.Exec(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, 'ereignis', $3)`,
 			t.ID, ich.ID, strings.Join(ereignisse, ", "))
 	}
+	if neu.Status != t.Status {
+		a.melden("ticket.status", t.ID, neu.Betreff)
+	}
 	zurueck(w, r, fmt.Sprintf("/t/%d", t.ID), "Gespeichert")
 }
 
@@ -600,9 +623,9 @@ func (a *App) warteschlangeSpeichern(w http.ResponseWriter, r *http.Request) {
 	reihe, _ := strconv.Atoi(r.FormValue("reihe"))
 	var err error
 	if id := r.FormValue("id"); id != "" {
-		_, err = a.db.Exec(r.Context(), `UPDATE warteschlangen SET name=$2, reihe=$3 WHERE id::text=$1`, id, name, reihe)
+		_, err = a.db.Exec(r.Context(), `UPDATE warteschlangen SET name=$2, reihe=$3, stichworte=$4 WHERE id::text=$1`, id, name, reihe, einzeilig(r.FormValue("stichworte"), 500))
 	} else {
-		_, err = a.db.Exec(r.Context(), `INSERT INTO warteschlangen (name, reihe) VALUES ($1, $2)`, name, reihe)
+		_, err = a.db.Exec(r.Context(), `INSERT INTO warteschlangen (name, reihe, stichworte) VALUES ($1, $2, $3)`, name, reihe, einzeilig(r.FormValue("stichworte"), 500))
 	}
 	if err != nil {
 		zurueck(w, r, "/warteschlangen", "Fehler: "+err.Error())

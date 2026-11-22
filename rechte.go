@@ -81,3 +81,16 @@ func (a *App) adminEntziehen(ctx context.Context, kennung string) error {
 	_, err := a.db.Exec(ctx, `UPDATE konten SET rolle = 'agent', kennung = 'geloescht:' || id::text WHERE kennung = $1`, kennung)
 	return err
 }
+
+// nacheinander: Rollen ändern sich unter derselben Sperre wie Konten, die
+// Prüfung danach sieht also den aktuellen Stand.
+func (a *App) nacheinander(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !inhaltZuerst(w, r) {
+			return
+		}
+		a.verwaltung.Lock()
+		defer a.verwaltung.Unlock()
+		h(w, r)
+	}
+}

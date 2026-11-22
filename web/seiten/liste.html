@@ -7,6 +7,12 @@
   <a class="zahl{{if eq $d.F.Zustaendig "ich"}} aktiv{{end}}" href="/?zustaendig=ich"><strong>{{$d.Zahlen.Mir}}</strong><span>bei mir</span></a>
   <a class="zahl{{if $d.Zahlen.Ueber}} schlecht{{end}}{{if eq $d.F.Status "ueberfaellig"}} aktiv{{end}}" href="/?status=ueberfaellig"><strong>{{$d.Zahlen.Ueber}}</strong><span>überfällig</span></a>
 </div>
+{{if $d.Ansichten}}<div class="ansichten">{{$token := .Token}}{{range $d.Ansichten}}
+  <form method="post" action="/ansichten/{{.ID}}/loeschen">
+    <input type="hidden" name="token" value="{{$token}}">
+    <a class="pille" href="{{.Adresse}}">{{.Name}}</a><button class="weg-knopf" title="Ansicht löschen" aria-label="Ansicht {{.Name}} löschen">×</button>
+  </form>{{end}}
+</div>{{end}}
 <form class="filter" method="get" action="/">
   <input type="search" name="q" value="{{$d.F.Suche}}" placeholder="Suchen oder #Nummer" aria-label="Suchen">
   <select name="status" aria-label="Status">
@@ -31,6 +37,15 @@
   </select>
   <button>Filtern</button>
 </form>
+<details class="speichern"><summary>Diese Auswahl als Ansicht speichern</summary>
+<form method="post" action="/ansichten">
+  <input type="hidden" name="token" value="{{.Token}}">
+  <input type="hidden" name="q" value="{{$d.F.Suche}}"><input type="hidden" name="status" value="{{$d.F.Status}}">
+  <input type="hidden" name="warteschlange" value="{{$d.F.Warteschlange}}"><input type="hidden" name="zustaendig" value="{{$d.F.Zustaendig}}">
+  <input type="hidden" name="prioritaet" value="{{$d.F.Prioritaet}}">
+  <input type="text" name="name" maxlength="60" placeholder="Name der Ansicht" aria-label="Name der Ansicht" required>
+  <button>Speichern</button>
+</form></details>
 {{if $d.Tickets}}
 <table>
   <tr><th>#</th><th>Betreff</th><th>Status</th><th>Priorität</th><th class="weg">Warteschlange</th><th class="weg">Zuständig</th><th class="weg">Fällig</th></tr>

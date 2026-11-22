@@ -1,0 +1,16 @@
+{{define "inhalt"}}
+<div class="schmal">
+<h1>Wie können wir helfen?</h1>
+<p class="muted">Ein Konto braucht es nicht. Nach dem Absenden kommt ein persönlicher Link, dort steht der Stand.</p>
+<form method="post" action="/hilfe" class="karte">
+  <input type="hidden" name="token" value="{{.Token}}">
+  <div class="feld-reihe">
+    <label>Name <input type="text" name="name" maxlength="120" autocomplete="name" required></label>
+    <label>E-Mail (freiwillig) <input type="email" name="email" maxlength="254" autocomplete="email"></label>
+  </div>
+  <label>Betreff <input type="text" name="betreff" maxlength="200" required></label>
+  <label>Was ist los? <textarea name="text" rows="8" maxlength="20000" required></textarea></label>
+  <button class="primaer">Absenden</button>
+</form>
+</div>
+{{end}}

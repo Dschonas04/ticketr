@@ -170,3 +170,9 @@ dl.eigenschaften dd { margin: 0; overflow-wrap: anywhere; }
 .ereignis { padding-left: 14px; border-left: 2px solid var(--rand); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .bericht .zahl strong { font-size: 19px; }
 @media (min-width: 701px) { .filter input[type=search] { flex: 1; min-width: 230px; } }
+.portal-antwort { margin-top: 16px; }
+.ansichten { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.ansichten form { display: inline-flex; gap: 2px; }
+.ansichten .weg-knopf { min-height: 24px; padding: 0 7px; border: 0; background: none; color: var(--muted); }
+details.speichern { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
+details.speichern form { display: flex; gap: 8px; max-width: 420px; margin-top: 8px; }

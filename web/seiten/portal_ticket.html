@@ -1,0 +1,14 @@
+{{define "inhalt"}}{{$t := .D.T}}
+<div class="schmal">
+<div class="leiste"><h1>{{$t.Betreff}}</h1><span class="pille {{$t.StatusKlasse}}">{{$t.StatusName}}</span></div>
+<p class="muted klein">Anfrage {{$t.ID}} vom {{datum $t.Erstellt}}</p>
+<div class="verlauf">
+{{range .D.Verlauf}}<div class="beitrag"><div class="meta"><strong>{{.Verfasser}}</strong> · {{datum .Erstellt}}</div><div>{{mehrzeilig .Text}}</div></div>{{end}}
+</div>
+<form method="post" action="/hilfe/t/{{.D.Schluessel}}" class="karte portal-antwort">
+  <input type="hidden" name="token" value="{{.Token}}">
+  <label>Nachricht <textarea name="text" rows="5" maxlength="20000" required></textarea></label>
+  <button class="primaer">Senden</button>
+</form>
+</div>
+{{end}}

@@ -8,7 +8,7 @@
   <textarea id="text" name="text" rows="8"></textarea>
   <div class="feld-reihe">
     <div><label for="warteschlange">Warteschlange</label>
-      <select id="warteschlange" name="warteschlange">{{range .D.Schlangen}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+      <select id="warteschlange" name="warteschlange"><option value="auto">automatisch</option>{{range .D.Schlangen}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
     <div><label for="prioritaet">Priorität</label>
       <select id="prioritaet" name="prioritaet">{{range .D.Prioritaeten}}<option value="{{.Wert}}"{{if eq .Wert "normal"}} selected{{end}}>{{.Name}}</option>{{end}}</select></div>
     <div><label for="zustaendig">Zuständig</label>

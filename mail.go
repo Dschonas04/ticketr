@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"mime"
 	"net"
+	netmail "net/mail"
 	"net/smtp"
 	"strings"
 	"time"
@@ -46,5 +48,53 @@ func (m *Mailer) senden(an, betreff, text string) error {
 		"Date: " + time.Now().Format(time.RFC1123Z) + "\r\n" +
 		"MIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" +
 		strings.ReplaceAll(text, "\n", "\r\n") + "\r\n"
-	return smtp.SendMail(m.server, auth, m.absender, []string{an}, []byte(nachricht))
+	// Von Hand statt smtp.SendMail: das hat keine Zeitgrenze.
+	verbindung, err := net.DialTimeout("tcp", m.server, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	defer verbindung.Close()
+	if err := verbindung.SetDeadline(time.Now().Add(time.Minute)); err != nil {
+		return err
+	}
+	c, err := smtp.NewClient(verbindung, host)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err := c.StartTLS(&tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}); err != nil {
+			return err
+		}
+	}
+	if auth != nil {
+		if err := c.Auth(auth); err != nil {
+			return err
+		}
+	}
+	if err := c.Mail(m.adresse()); err != nil {
+		return err
+	}
+	if err := c.Rcpt(an); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write([]byte(nachricht)); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	return c.Quit()
+}
+
+// adresse ist der Absender ohne Anzeigenamen.
+func (m *Mailer) adresse() string {
+	if a, err := netmail.ParseAddress(m.absender); err == nil {
+		return a.Address
+	}
+	return m.absender
 }

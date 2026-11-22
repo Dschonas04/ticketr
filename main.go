@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -17,11 +18,16 @@ import (
 )
 
 type App struct {
-	admins []string // Vorgabe des Betreibers
-	db     *pgxpool.Pool
-	sso    *SSO
-	v      Vorlagen
-	mail   *Mailer
+	// verwaltung: Änderungen an Konten, Rollen und Anmeldung laufen nacheinander.
+	verwaltung sync.Mutex
+	portal     bool // Anfragen ohne Konto unter /hilfe
+	bremse     bremse
+	webhook    *Webhook
+	admins     []string // Vorgabe des Betreibers
+	db         *pgxpool.Pool
+	sso        *SSO
+	v          Vorlagen
+	mail       *Mailer
 }
 
 func main() {
@@ -38,6 +44,14 @@ func main() {
 	a.sso.ErstesKonto = a.ersterAdmin
 	a.sso.KontoWeg = a.adminEntziehen
 	a.sso.Frei = []string{"/statisch/", "/healthz"}
+	if a.portal = umgebung("TICKETR_PORTAL", "") == "1"; a.portal {
+		a.sso.Frei = append(a.sso.Frei, "/hilfe")
+	}
+	a.webhook = neuerWebhook(umgebung("TICKETR_WEBHOOK", ""), umgebung("TICKETR_WEBHOOK_GEHEIMNIS", ""))
+	go regelmaessig(ctx, "fristen", a.fristenPruefen)
+	if p := neuerPosteingang(); p != nil {
+		go regelmaessig(ctx, "post", func(c context.Context) error { return a.postHolen(c, p) })
+	}
 
 	adresse := ":" + umgebung("TICKETR_PORT", "8350")
 	srv := &http.Server{Addr: adresse, Handler: a.wege(), ReadHeaderTimeout: 10 * time.Second}
@@ -70,13 +84,21 @@ func (a *App) wege() http.Handler {
 	m.HandleFunc("GET /warteschlangen", a.nurAdmin(a.warteschlangen))
 	m.HandleFunc("POST /warteschlangen", a.nurAdmin(a.warteschlangeSpeichern))
 	m.HandleFunc("POST /warteschlangen/{id}/loeschen", a.nurAdmin(a.warteschlangeLoeschen))
-	m.HandleFunc("POST /konten/{id}/rolle", a.nurAdmin(a.rolleSetzen))
+	m.HandleFunc("POST /konten/{id}/rolle", a.nacheinander(a.nurAdmin(a.rolleSetzen)))
 	m.HandleFunc("GET /t/{id}/anhang/{anhang}", a.anhangLaden)
 	m.HandleFunc("GET /berichte", a.berichte)
 	m.HandleFunc("GET /vorlagen", a.nurAdmin(a.vorlagenSeite))
 	m.HandleFunc("POST /vorlagen", a.nurAdmin(a.vorlageSpeichern))
 	m.HandleFunc("POST /vorlagen/{id}/loeschen", a.nurAdmin(a.vorlageLoeschen))
 	m.HandleFunc("GET /api/tickets", a.apiListe)
+	m.HandleFunc("POST /ansichten", a.ansichtSpeichern)
+	m.HandleFunc("POST /ansichten/{id}/loeschen", a.ansichtLoeschen)
+	if a.portal {
+		m.HandleFunc("GET /hilfe", a.portalStart)
+		m.HandleFunc("POST /hilfe", a.portalAnlegen)
+		m.HandleFunc("GET /hilfe/t/{schluessel}", a.portalTicket)
+		m.HandleFunc("POST /hilfe/t/{schluessel}", a.portalAntwort)
+	}
 	return sicherheitskopf(nurAngemeldet(a.sso, m))
 }
 
@@ -84,6 +106,12 @@ func (a *App) angemeldet(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !inhaltZuerst(w, r) {
 			return
+		}
+		// Erst sperren, dann prüfen: bis zum Speichern kann niemand die Rechte
+		// entziehen, auf die sich die Prüfung stützt.
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			a.verwaltung.Lock()
+			defer a.verwaltung.Unlock()
 		}
 		// Anmeldung und Konten verwalten nur Admins; vor der Einrichtung, wer
 		// den Code aus dem Log hat.
