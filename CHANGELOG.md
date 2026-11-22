@@ -2,6 +2,7 @@
 
 ## Unveröffentlicht
 
+- Sicherheit: Die SSO-Einstellung hat einen Leser für Prüfung und Speichern und lehnt Unlesbares ab.
 - Doppelte id im Seitengerüst behoben.
 - Sicherheit: Die Sperre der Verwaltung wartet weder auf den Browser noch auf den Anbieter und hat eine Zeitgrenze.
 - Kundenportal, E-Mail-Eingang per IMAP, Fristen für die erste Antwort mit Erinnerung.
