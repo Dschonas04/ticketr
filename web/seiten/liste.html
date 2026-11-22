@@ -37,7 +37,7 @@
   {{range $d.Tickets}}
   <tr class="zeile">
     <td class="muted">{{.ID}}</td>
-    <td><a href="/t/{{.ID}}"><strong>{{.Betreff}}</strong></a><div class="muted klein">{{if .MelderName}}{{.MelderName}}{{else}}{{.MelderEmail}}{{end}} · vor {{seit .Geaendert}}{{if .Beitraege}} · {{.Beitraege}} Beiträge{{end}}</div></td>
+    <td><a href="/t/{{.ID}}"><strong>{{.Betreff}}</strong></a><div class="muted klein">{{if .MelderName}}{{.MelderName}}{{else}}{{.MelderEmail}}{{end}} · {{seit .Geaendert}}{{if .Beitraege}} · {{mehrzahl .Beitraege "Beitrag" "Beiträge"}}{{end}}</div></td>
     <td><span class="pille {{.StatusKlasse}}">{{.StatusName}}</span></td>
     <td><span class="pille {{.PrioKlasse}}">{{.PrioritaetName}}</span></td>
     <td class="weg">{{.Warteschlange}}</td>
