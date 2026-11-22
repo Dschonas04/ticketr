@@ -105,6 +105,7 @@ type Beitrag struct {
 	Art       string
 	Text      string
 	Erstellt  time.Time
+	Anhaenge  []Anhang
 }
 
 // ich legt das Konto der angemeldeten Person an oder frischt es auf. Neue
@@ -191,7 +192,7 @@ func scanTicket(row pgx.Row) (Ticket, error) {
 
 // Filter der Liste, aus der Adresse.
 type Filter struct {
-	Status        string // offen (Vorgabe) | alle | einer der Stati
+	Status        string // offen (Vorgabe) | alle | ueberfaellig | einer der Stati
 	Warteschlange string
 	Zustaendig    string // "" alle | ich | niemand | Konto-ID
 	Suche         string
@@ -209,6 +210,8 @@ func (a *App) suchen(ctx context.Context, f Filter, ich string) ([]Ticket, error
 	case "", "offen":
 		wo = append(wo, "t.status NOT IN ('geloest','geschlossen')")
 	case "alle":
+	case "ueberfaellig":
+		wo = append(wo, "t.status NOT IN ('geloest','geschlossen') AND t.faellig < now()")
 	default:
 		wo = append(wo, "t.status = "+arg(f.Status))
 	}
@@ -318,8 +321,19 @@ func (a *App) neuAnlegen(w http.ResponseWriter, r *http.Request) {
 	if melderName == "" && melderEmail == "" {
 		melderName, melderEmail = ich.Name, ich.Email
 	}
+	dateien, err := dateienLesen(r)
+	if err != nil {
+		zurueck(w, r, "/neu", "Fehler: "+err.Error())
+		return
+	}
+	tx, err := a.db.Begin(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer tx.Rollback(r.Context())
 	var id int64
-	err = a.db.QueryRow(r.Context(), `INSERT INTO tickets (betreff, prioritaet, warteschlange, melder_name, melder_email,
+	err = tx.QueryRow(r.Context(), `INSERT INTO tickets (betreff, prioritaet, warteschlange, melder_name, melder_email,
 		erstellt_von, zustaendig, faellig, status)
 		VALUES ($1, $2, NULLIF($3, '')::uuid, $4, $5, $6::uuid, NULLIF($7, '')::uuid, $8,
 		        CASE WHEN $7 = '' THEN 'neu' ELSE 'offen' END) RETURNING id`,
@@ -329,8 +343,21 @@ func (a *App) neuAnlegen(w http.ResponseWriter, r *http.Request) {
 		zurueck(w, r, "/neu", "Fehler: "+err.Error())
 		return
 	}
-	if text != "" {
-		a.db.Exec(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, 'antwort', $3)`, id, ich.ID, text)
+	if text != "" || len(dateien) > 0 {
+		var beitrag int64
+		if err := tx.QueryRow(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text)
+			VALUES ($1, $2::uuid, 'antwort', $3) RETURNING id`, id, ich.ID, text).Scan(&beitrag); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		if err := dateienSpeichern(r.Context(), tx, id, beitrag, dateien); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
 	}
 	zurueck(w, r, fmt.Sprintf("/t/%d", id), "Ticket angelegt")
 }
@@ -360,10 +387,23 @@ func (a *App) ticketZeigen(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	rows.Close()
+	dateien, err := a.anhaengeVon(r.Context(), t.ID)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for i := range verlauf {
+		verlauf[i].Anhaenge = dateien[verlauf[i].ID]
+	}
+	bausteine, err := a.bausteine(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	a.v.zeigen(w, r, "ticket", a.daten(r, fmt.Sprintf("#%d %s", t.ID, t.Betreff), "liste", map[string]any{
 		"T": t, "Verlauf": verlauf, "Stati": Stati, "Prioritaeten": Prioritaeten,
 		"Schlangen": a.schlangen(r.Context()), "Konten": a.konten(r.Context()), "Ich": ich,
-		"Mail": a.mail != nil,
+		"Mail": a.mail != nil, "Vorlagen": bausteine,
 	}))
 }
 
@@ -383,7 +423,12 @@ func (a *App) beitragSchreiben(w http.ResponseWriter, r *http.Request) {
 	}
 	ziel := fmt.Sprintf("/t/%d", t.ID)
 	text := strings.TrimSpace(r.FormValue("text"))
-	if text == "" {
+	dateien, err := dateienLesen(r)
+	if err != nil {
+		zurueck(w, r, ziel, "Fehler: "+err.Error())
+		return
+	}
+	if text == "" && len(dateien) == 0 {
 		zurueck(w, r, ziel, "Kein Text")
 		return
 	}
@@ -397,19 +442,37 @@ func (a *App) beitragSchreiben(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
-	tx.Exec(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, $3, $4)`, t.ID, ich.ID, art, text)
+	var beitrag int64
+	if err := tx.QueryRow(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, $3, $4) RETURNING id`,
+		t.ID, ich.ID, art, text).Scan(&beitrag); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	if err := dateienSpeichern(r.Context(), tx, t.ID, beitrag, dateien); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	// Die erste Antwort eines anderen als des Melders zählt für die Frist; wer
 	// antwortet und niemand ist zuständig, übernimmt das Ticket.
-	tx.Exec(r.Context(), `UPDATE tickets SET geaendert = now(),
+	if _, err := tx.Exec(r.Context(), `UPDATE tickets SET geaendert = now(),
 		erste_antwort = COALESCE(erste_antwort, CASE WHEN $2 = 'antwort' THEN now() END),
 		zustaendig = COALESCE(zustaendig, $3::uuid),
 		status = CASE WHEN status = 'neu' THEN 'offen' ELSE status END
-		WHERE id = $1`, t.ID, art, ich.ID)
+		WHERE id = $1`, t.ID, art, ich.ID); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	if neu := r.FormValue("status"); gueltig(Stati, neu) && neu != t.Status && neu != "" {
-		tx.Exec(r.Context(), `UPDATE tickets SET status = $2,
-			geloest_am = CASE WHEN $2 IN ('geloest','geschlossen') THEN now() ELSE NULL END WHERE id = $1`, t.ID, neu)
-		tx.Exec(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, 'ereignis', $3)`,
-			t.ID, ich.ID, "Status: "+name(Stati, neu))
+		if _, err := tx.Exec(r.Context(), `UPDATE tickets SET status = $2,
+			geloest_am = CASE WHEN $2 IN ('geloest','geschlossen') THEN now() ELSE NULL END WHERE id = $1`, t.ID, neu); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		if _, err := tx.Exec(r.Context(), `INSERT INTO beitraege (ticket, verfasser, art, text) VALUES ($1, $2::uuid, 'ereignis', $3)`,
+			t.ID, ich.ID, "Status: "+name(Stati, neu)); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	}
 	if err := tx.Commit(r.Context()); err != nil {
 		http.Error(w, err.Error(), 500)

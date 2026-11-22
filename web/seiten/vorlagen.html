@@ -1,0 +1,26 @@
+{{define "inhalt"}}{{$t := .Token}}
+<div class="leiste"><h1>Antwortvorlagen</h1><a class="knopf" href="/warteschlangen">Zurück zur Verwaltung</a></div>
+<div class="verlauf schmal">
+{{range .D.Vorlagen}}
+<div class="karte">
+  <form method="post" action="/vorlagen">
+    <input type="hidden" name="token" value="{{$t}}"><input type="hidden" name="id" value="{{.ID}}">
+    <label>Name <input type="text" name="name" value="{{.Name}}" required></label>
+    <label>Text <textarea name="text" required>{{.Text}}</textarea></label>
+    <button>Speichern</button>
+  </form>
+  <form method="post" action="/vorlagen/{{.ID}}/loeschen" data-frage="Vorlage löschen?" class="nebenbei">
+    <input type="hidden" name="token" value="{{$t}}"><button class="gefahr klein">Löschen</button>
+  </form>
+</div>
+{{else}}<div class="leer"><strong>Noch keine Vorlagen</strong>Was sich wiederholt, muss man nur einmal schreiben.</div>{{end}}
+<form method="post" action="/vorlagen" class="karte">
+  <h2>Neue Vorlage</h2>
+  <input type="hidden" name="token" value="{{$t}}">
+  <label>Name <input type="text" name="name" required></label>
+  <label>Text <textarea name="text" required></textarea></label>
+  <button class="primaer">Anlegen</button>
+</form>
+</div>
+{{end}}
+{{define "skripte"}}<script src="/statisch/verwalten.js" defer></script>{{end}}

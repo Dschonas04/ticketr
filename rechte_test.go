@@ -31,7 +31,7 @@ func pruefApp(t *testing.T) *App {
 	ctx := context.Background()
 	db := datenbank(ctx, adresse)
 	t.Cleanup(db.Close)
-	if _, err := db.Exec(ctx, `TRUNCATE beitraege, tickets, warteschlangen, konten RESTART IDENTITY CASCADE`); err != nil {
+	if _, err := db.Exec(ctx, `TRUNCATE beitraege, tickets, warteschlangen, konten, vorlagen RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, schemaSQL); err != nil {

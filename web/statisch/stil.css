@@ -157,3 +157,14 @@ dl.eigenschaften dd { margin: 0; overflow-wrap: anywhere; }
   input[type=text], input[type=url], input[type=email], input[type=search], input[type=password],
   input[type=number], select, textarea { font-size: 16px; }
 }
+
+/* Ticketr */
+.schmal { max-width: 760px; }
+.nebenbei { margin-top: 10px; }
+.dateiliste { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.dateiliste a { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.antwort-fuss { margin: 14px 0 0; }
+.antwort-fuss label { margin: 0; }
+.antwort-fuss select { width: auto; }
+.antwort-fuss .primaer { margin-left: auto; }
+.ereignis { padding-left: 14px; border-left: 2px solid var(--rand); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }

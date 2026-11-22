@@ -1,18 +1,18 @@
 {{define "inhalt"}}
 {{$d := .D}}
-<div class="leiste">
-  <h1>Tickets</h1>
-  <a class="pille info" href="/?status=neu">{{$d.Zahlen.Neu}} neu</a>
-  <a class="pille" href="/">{{$d.Zahlen.Offen}} offen</a>
-  <a class="pille" href="/?zustaendig=ich">{{$d.Zahlen.Mir}} bei mir</a>
-  {{if $d.Zahlen.Ueber}}<span class="pille schlecht">{{$d.Zahlen.Ueber}} überfällig</span>{{end}}
-  <a class="knopf primaer" href="/neu">Neues Ticket</a>
+<div class="leiste"><h1>Tickets</h1><a class="knopf primaer" href="/neu">Neues Ticket</a></div>
+<div class="zahlen">
+  <a class="zahl{{if eq $d.F.Status "neu"}} aktiv{{end}}" href="/?status=neu"><strong>{{$d.Zahlen.Neu}}</strong><span>neu</span></a>
+  <a class="zahl{{if and (or (eq $d.F.Status "") (eq $d.F.Status "offen")) (eq $d.F.Zustaendig "")}} aktiv{{end}}" href="/"><strong>{{$d.Zahlen.Offen}}</strong><span>offen</span></a>
+  <a class="zahl{{if eq $d.F.Zustaendig "ich"}} aktiv{{end}}" href="/?zustaendig=ich"><strong>{{$d.Zahlen.Mir}}</strong><span>bei mir</span></a>
+  <a class="zahl{{if $d.Zahlen.Ueber}} schlecht{{end}}{{if eq $d.F.Status "ueberfaellig"}} aktiv{{end}}" href="/?status=ueberfaellig"><strong>{{$d.Zahlen.Ueber}}</strong><span>überfällig</span></a>
 </div>
 <form class="filter" method="get" action="/">
-  <input type="search" name="q" value="{{$d.F.Suche}}" placeholder="Suchen oder #Nummer" style="min-width:220px">
+  <input type="search" name="q" value="{{$d.F.Suche}}" placeholder="Suchen oder #Nummer" aria-label="Suchen">
   <select name="status" aria-label="Status">
     <option value="offen"{{if or (eq $d.F.Status "") (eq $d.F.Status "offen")}} selected{{end}}>Alle offenen</option>
     <option value="alle"{{if eq $d.F.Status "alle"}} selected{{end}}>Alle</option>
+    <option value="ueberfaellig"{{if eq $d.F.Status "ueberfaellig"}} selected{{end}}>Überfällige</option>
     {{range $d.Stati}}<option value="{{.Wert}}"{{if eq $d.F.Status .Wert}} selected{{end}}>{{.Name}}</option>{{end}}
   </select>
   <select name="warteschlange" aria-label="Warteschlange">
@@ -46,5 +46,5 @@
   </tr>
   {{end}}
 </table>
-{{else}}<div class="leer">Keine Tickets für diesen Filter.</div>{{end}}
+{{else}}<div class="leer"><strong>Nichts zu tun</strong>Für diese Auswahl gibt es keine Tickets.<br><a class="knopf" href="/neu">Ticket anlegen</a></div>{{end}}
 {{end}}

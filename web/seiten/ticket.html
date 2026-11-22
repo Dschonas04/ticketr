@@ -11,20 +11,25 @@
     <div class="verlauf">
       {{range $d.Verlauf}}
       {{if eq .Art "ereignis"}}
-      <div class="muted klein">{{.Verfasser}}: {{.Text}} · {{datum .Erstellt}}</div>
+      <div class="ereignis">{{.Verfasser}}: {{.Text}} · {{datum .Erstellt}}</div>
       {{else}}
       <div class="beitrag{{if eq .Art "notiz"}} intern{{end}}">
         <div class="meta"><strong>{{.Verfasser}}</strong> · {{datum .Erstellt}}{{if eq .Art "notiz"}} · interne Notiz{{end}}</div>
         <div>{{mehrzeilig .Text}}</div>
+        {{if .Anhaenge}}<div class="dateiliste">{{range .Anhaenge}}<a class="pille" href="/t/{{$t.ID}}/anhang/{{.ID}}">{{.Name}} · {{.GroesseText}}</a>{{end}}</div>{{end}}
       </div>
       {{end}}
       {{else}}<div class="muted">Noch keine Beiträge.</div>{{end}}
     </div>
-    <form method="post" action="/t/{{$t.ID}}/beitrag" class="karte" style="margin-top:16px">
+    <form method="post" action="/t/{{$t.ID}}/beitrag" class="karte" style="margin-top:16px" enctype="multipart/form-data">
       <input type="hidden" name="token" value="{{.Token}}">
+      {{if $d.Vorlagen}}<label for="vorlage">Vorlage</label>
+      <select id="vorlage" data-vorlagen><option value="">Vorlage einfügen</option>{{range $d.Vorlagen}}<option data-text="{{.Text}}">{{.Name}}</option>{{end}}</select>{{end}}
       <label for="text">Antwort oder Notiz</label>
-      <textarea id="text" name="text" rows="6" required></textarea>
-      <div class="leiste" style="margin-top:10px">
+      <textarea id="text" name="text" rows="6"></textarea>
+      <label for="dateien">Anhänge (bis 5 Dateien, je 10 MB)</label>
+      <input type="file" id="dateien" name="dateien" multiple data-max="10485760">
+      <div class="leiste antwort-fuss">
         <label style="margin:0"><input type="checkbox" name="intern" value="ja"> Interne Notiz</label>
         {{if and $d.Mail $t.MelderEmail}}<label style="margin:0"><input type="checkbox" name="mail" value="ja" checked> an {{$t.MelderEmail}} schicken</label>{{end}}
         <select name="status" style="width:auto" aria-label="Status danach">
@@ -61,3 +66,4 @@
   </form>
 </div>
 {{end}}
+{{define "skripte"}}<script src="/statisch/ticket.js" defer></script>{{end}}

@@ -1,0 +1,20 @@
+{{define "inhalt"}}{{$d := .D}}
+<div class="leiste"><h1>Berichte</h1>
+{{range $d.Zeiten}}<a class="knopf klein{{if eq . $d.Tage}} primaer{{end}}" href="/berichte?tage={{.}}">{{.}} Tage</a>{{end}}
+</div>
+<div class="zahlen">
+  <div class="zahl"><strong>{{$d.Neu}}</strong><span>angelegt</span></div>
+  <div class="zahl"><strong>{{$d.Fertig}}</strong><span>gelöst</span></div>
+  <div class="zahl"><strong>{{$d.Antwort}}</strong><span>bis zur ersten Antwort</span></div>
+  <div class="zahl"><strong>{{$d.Loesung}}</strong><span>bis zur Lösung</span></div>
+  <div class="zahl"><strong>{{$d.Quote}}</strong><span>in der Frist gelöst</span></div>
+</div>
+{{range $d.Gruppen}}
+<h2>{{.Titel}}</h2>
+{{if .Zeilen}}<table>
+<tr><th>Name</th><th>Offen</th><th>Überfällig</th><th>Angelegt</th><th>Gelöst</th></tr>
+{{range .Zeilen}}<tr><td>{{.Name}}</td><td>{{.Offen}}</td><td>{{if .Ueber}}<span class="pille schlecht">{{.Ueber}}</span>{{else}}0{{end}}</td><td>{{.Neu}}</td><td>{{.Fertig}}</td></tr>{{end}}
+</table>{{else}}<div class="leer"><strong>Noch keine Tickets</strong></div>{{end}}
+{{end}}
+<p class="muted klein">Offen und überfällig gelten für jetzt, angelegt und gelöst für den gewählten Zeitraum.</p>
+{{end}}

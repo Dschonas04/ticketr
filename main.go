@@ -70,6 +70,11 @@ func (a *App) wege() http.Handler {
 	m.HandleFunc("POST /warteschlangen", a.nurAdmin(a.warteschlangeSpeichern))
 	m.HandleFunc("POST /warteschlangen/{id}/loeschen", a.nurAdmin(a.warteschlangeLoeschen))
 	m.HandleFunc("POST /konten/{id}/rolle", a.nurAdmin(a.rolleSetzen))
+	m.HandleFunc("GET /t/{id}/anhang/{anhang}", a.anhangLaden)
+	m.HandleFunc("GET /berichte", a.berichte)
+	m.HandleFunc("GET /vorlagen", a.nurAdmin(a.vorlagenSeite))
+	m.HandleFunc("POST /vorlagen", a.nurAdmin(a.vorlageSpeichern))
+	m.HandleFunc("POST /vorlagen/{id}/loeschen", a.nurAdmin(a.vorlageLoeschen))
 	m.HandleFunc("GET /api/tickets", a.apiListe)
 	return sicherheitskopf(nurAngemeldet(a.sso, m))
 }

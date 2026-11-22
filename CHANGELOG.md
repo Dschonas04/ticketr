@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht
 
+- Anhänge an Tickets und Antworten (immer als Download), Antwortvorlagen, Berichte mit Antwort- und Lösungszeiten.
+- Liste mit Kennzahlen und Filter für Überfälliges.
 - Sicherheit: Admin wird man nur mit dem Einrichtungscode oder über `TICKETR_ADMIN`, nicht durch die erste Anmeldung. Kennungen von eigenen Konten und SSO sind getrennt.
 - Oberfläche überarbeitet: Kopfzeile, Tabellen und Felder am Handy, Anmeldeseite in den Farben der App.
 - Logo auf der Anmeldeseite wird wieder ausgeliefert, der Hinweis zur Ersteinrichtung stimmt.

@@ -44,3 +44,22 @@ CREATE TABLE IF NOT EXISTS beitraege (
 CREATE INDEX IF NOT EXISTS beitraege_ticket ON beitraege(ticket, erstellt);
 
 INSERT INTO warteschlangen (name, reihe) VALUES ('Allgemein', 0) ON CONFLICT DO NOTHING;
+
+-- Dateien an Beiträgen. Sie liegen in der Datenbank und damit in jeder Sicherung.
+CREATE TABLE IF NOT EXISTS anhaenge (
+	id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	ticket   bigint NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+	beitrag  bigint NOT NULL REFERENCES beitraege(id) ON DELETE CASCADE,
+	name     text NOT NULL,
+	groesse  bigint NOT NULL,
+	daten    bytea NOT NULL,
+	erstellt timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS anhaenge_ticket ON anhaenge(ticket);
+
+-- Textbausteine für Antworten.
+CREATE TABLE IF NOT EXISTS vorlagen (
+	id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	name  text NOT NULL UNIQUE,
+	text  text NOT NULL
+);
