@@ -89,8 +89,6 @@ func (a *App) nacheinander(h http.HandlerFunc) http.HandlerFunc {
 		if !inhaltZuerst(w, r) {
 			return
 		}
-		a.verwaltung.Lock()
-		defer a.verwaltung.Unlock()
-		h(w, r)
+		a.verwaltung.fuehreAus(w, r, h)
 	}
 }

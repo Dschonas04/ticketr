@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht
 
+- Doppelte id im Seitengerüst behoben.
+- Sicherheit: Die Sperre der Verwaltung wartet weder auf den Browser noch auf den Anbieter und hat eine Zeitgrenze.
 - Kundenportal, E-Mail-Eingang per IMAP, Fristen für die erste Antwort mit Erinnerung.
 - Warteschlangen mit Stichworten, gespeicherte Ansichten, Webhook mit Unterschrift.
 - SMTP mit Zeitgrenze.
